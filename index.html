@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Recipe Batch Scale</title><style>*{box-sizing:border-box}body{background:#f2f0e9;color:#26343b;font:16px/1.55 'Segoe UI',sans-serif;margin:0}main{max-width:760px;background:white;margin:4vh auto;padding:clamp(18px,5vw,48px);border-top:6px solid #28605d}h1{font:700 clamp(32px,5vw,48px)/1.05 Georgia,serif;margin:0 0 16px}label{display:block;font-weight:600;margin:12px 0}small{display:block;font-weight:400}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}textarea,input,select{display:block;width:100%;font:inherit;padding:8px;margin-top:4px;border:1px solid #849897;border-radius:4px}input[type=color]{height:44px}button{padding:12px 18px;background:#205856;color:white;border:0;border-radius:5px;font:inherit;cursor:pointer}pre{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit}#paper{max-width:420px;margin:20px auto;border:1px solid #899695}#paper svg{display:block;width:100%}li{padding:4px}section{margin:20px 0}@media print{body,main{background:white;margin:0;padding:0;border:0}button,.grid,label,#go,main>p{display:none}}</style></head><body><main><h1>Recipe Batch Scale</h1><p>Scale ingredient quantities for a different number of servings and print a kitchen copy.</p><div class="grid"><label>Original servings<input id="original" type="number" min="0.01" step="any" value="4"></label><label>Target servings<input id="target" type="number" min="0.01" step="any" value="6"></label></div><label>Ingredients <small>One per line: amount | unit | ingredient. Fractions such as 1 1/2 work.</small><textarea id="items" rows="6">1 1/2 | cups | flour
+2 | tsp | baking powder
+200 | ml | milk</textarea></label><button id="go">Scale recipe</button><section id="result" aria-live="polite"></section><button id="print" hidden>Print scaled ingredients</button></main><script>
+'use strict';
+const $=id=>document.getElementById(id);
+
+function quantity(raw){
+  const m=raw.trim().match(/^(?:(\d+)\s+)?(\d+)\/(\d+)$/);
+  if(m)return Number(m[1]||0)+Number(m[2])/Number(m[3]);
+  return /^\d*\.?\d+$/.test(raw.trim())?Number(raw):NaN;
+}
+function scale(){
+  const a=$('original').valueAsNumber,b=$('target').valueAsNumber;
+  const result=$('result');result.replaceChildren();$('print').hidden=true;
+  if(![a,b].every(n=>Number.isFinite(n)&&n>0)){result.textContent='Enter two positive serving counts.';return}
+  const lines=$('items').value.split('\n').filter(s=>s.trim());
+  if(!lines.length){result.textContent='Add at least one ingredient.';return}
+  const list=document.createElement('ul');
+  for(const [i,line] of lines.entries()){
+    const fields=line.split('|').map(s=>s.trim()), n=quantity(fields[0])*b/a;
+    if(fields.length!==3 || !fields[2] || !Number.isFinite(n)||n<=0){result.textContent='Check ingredient line '+(i+1)+'. Use amount | unit | ingredient.';return}
+    const li=document.createElement('li');li.textContent=[Number(n.toPrecision(4)),fields[1],fields[2]].filter(Boolean).join(' ');list.append(li);
+  }
+  const h=document.createElement('h2');h.textContent='Ingredients for '+b+' servings';result.append(h,list);$('print').hidden=false;
+}
+$('go').onclick=scale;$('print').onclick=()=>print();document.addEventListener('input',()=>{$('result').replaceChildren();$('print').hidden=true});scale();
+</script></body></html>
